@@ -211,7 +211,10 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
             </Label>
             <Select 
               value={formData.subject} 
-              onValueChange={(value) => setFormData({ ...formData, subject: value })}
+              onValueChange={(value) => setFormData({ 
+                ...formData, 
+                subject: value === 'Clear Subject' ? '' : value 
+              })}
             >
               <SelectTrigger className="rounded-xl border-border/50">
                 <SelectValue placeholder="Select a subject" />
@@ -219,7 +222,9 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
               <SelectContent className="bg-card border-border z-50">
                 {subjects.map((subject) => (
                   <SelectItem key={subject} value={subject}>
-                    {subject}
+                    <span className={subject === 'Clear Subject' ? 'text-muted-foreground italic' : ''}>
+                      {subject}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

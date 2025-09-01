@@ -19,6 +19,7 @@ export interface TaskFormData {
 }
 
 export const subjects = [
+  'Clear Subject',
   'Mathematics',
   'Science', 
   'English',
