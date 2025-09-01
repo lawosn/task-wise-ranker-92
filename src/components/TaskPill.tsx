@@ -27,6 +27,7 @@ export const TaskPill = ({ task, onToggleComplete, onEdit }: TaskPillProps) => {
 
   const getImportanceColor = (importance: Task['importance']) => {
     const colors = {
+      none: 'text-muted-foreground',
       low: 'text-importance-low',
       medium: 'text-importance-medium', 
       high: 'text-importance-high',
@@ -96,7 +97,7 @@ export const TaskPill = ({ task, onToggleComplete, onEdit }: TaskPillProps) => {
             getImportanceColor(task.importance)
           )}>
             <Flag className="w-4 h-4" />
-            <span className="capitalize">{task.importance}</span>
+            <span className="capitalize">{task.importance === 'none' ? 'No Priority' : task.importance}</span>
           </div>
         </div>
       </div>

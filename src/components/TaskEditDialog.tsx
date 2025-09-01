@@ -246,7 +246,14 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
                   {importanceOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex items-center gap-2">
-                        <div className={cn("w-3 h-3 rounded-full", option.value === 'none' ? 'bg-muted' : `bg-${option.color}`)} />
+                        <div className={cn(
+                          "w-3 h-3 rounded-full",
+                          option.value === 'none' ? 'bg-muted' :
+                          option.value === 'low' ? 'bg-importance-low' :
+                          option.value === 'medium' ? 'bg-importance-medium' :
+                          option.value === 'high' ? 'bg-importance-high' :
+                          'bg-importance-critical'
+                        )} />
                         {option.label}
                       </div>
                     </SelectItem>

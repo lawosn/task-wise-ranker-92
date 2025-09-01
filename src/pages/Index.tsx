@@ -27,7 +27,7 @@ const Index = () => {
     const taskData: TaskFormData = {
       title,
       description: '',
-      importance: 'medium',
+      importance: 'none',
       subject: ''
     };
     
@@ -74,6 +74,10 @@ const Index = () => {
     
     setEditingTask(null);
     setIsDialogOpen(false);
+  };
+
+  const deleteTask = (taskId: string) => {
+    setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
   };
 
   const sortTasksByRank = (tasks: Task[]): Task[] => {
@@ -199,6 +203,7 @@ const Index = () => {
           setEditingTask(null);
         }}
         onSave={saveTask}
+        onDelete={deleteTask}
       />
     </div>
   );
