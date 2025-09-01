@@ -27,7 +27,8 @@ export const calculateTaskRank = (task: Task): number => {
     critical: 50,
     high: 35,
     medium: 20,
-    low: 10
+    low: 10,
+    none: 0
   };
   rank += importanceValues[task.importance];
 

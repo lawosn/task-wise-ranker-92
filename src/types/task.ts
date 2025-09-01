@@ -3,7 +3,7 @@ export interface Task {
   title: string;
   description?: string;
   dueDate?: Date;
-  importance: 'low' | 'medium' | 'high' | 'critical';
+  importance: 'none' | 'low' | 'medium' | 'high' | 'critical';
   subject?: string;
   completed: boolean;
   createdAt: Date;
@@ -14,7 +14,7 @@ export interface TaskFormData {
   title: string;
   description: string;
   dueDate?: Date;
-  importance: 'low' | 'medium' | 'high' | 'critical';
+  importance: 'none' | 'low' | 'medium' | 'high' | 'critical';
   subject: string;
 }
 
@@ -31,6 +31,7 @@ export const subjects = [
 ];
 
 export const importanceOptions = [
+  { value: 'none' as const, label: 'No Priority', color: 'muted' },
   { value: 'low' as const, label: 'Low Priority', color: 'importance-low' },
   { value: 'medium' as const, label: 'Medium Priority', color: 'importance-medium' },
   { value: 'high' as const, label: 'High Priority', color: 'importance-high' },

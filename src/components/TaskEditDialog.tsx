@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Calendar, CalendarIcon, Flag, BookOpen, X } from 'lucide-react';
+import { Calendar, CalendarIcon, Flag, BookOpen, X, Trash2, Sparkles } from 'lucide-react';
 import { Task, TaskFormData, subjects, importanceOptions } from '@/types/task';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface TaskEditDialogProps {
@@ -17,15 +19,18 @@ interface TaskEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: TaskFormData) => void;
+  onDelete?: (taskId: string) => void;
 }
 
-export const TaskEditDialog = ({ task, isOpen, onClose, onSave }: TaskEditDialogProps) => {
+export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: TaskEditDialogProps) => {
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
-    importance: 'medium',
+    importance: 'none',
     subject: ''
   });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (task) {
@@ -40,7 +45,7 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave }: TaskEditDialog
       setFormData({
         title: '',
         description: '',
-        importance: 'medium',
+        importance: 'none',
         subject: ''
       });
     }
@@ -76,6 +81,55 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave }: TaskEditDialog
 
   const handleCancel = () => {
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (task && onDelete) {
+      onDelete(task.id);
+      onClose();
+    }
+  };
+
+  const analyzeTaskPriority = async () => {
+    if (!formData.title.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a task title before analyzing priority.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
+        body: {
+          title: formData.title,
+          description: formData.description,
+          dueDate: formData.dueDate,
+          subject: formData.subject
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.priority) {
+        setFormData({ ...formData, importance: data.priority });
+        toast({
+          title: "Priority Analyzed",
+          description: `AI suggests ${data.priority} priority for this task.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error analyzing task priority:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not analyze task priority. Please set it manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -178,30 +232,53 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave }: TaskEditDialog
               <Flag className="w-4 h-4" />
               Importance Level
             </Label>
-            <Select 
-              value={formData.importance} 
-              onValueChange={(value: TaskFormData['importance']) => 
-                setFormData({ ...formData, importance: value })
-              }
-            >
-              <SelectTrigger className="rounded-xl border-border/50">
-                <SelectValue placeholder="Select importance" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border z-50">
-                {importanceOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2">
-                      <div className={cn("w-3 h-3 rounded-full", `bg-${option.color}`)} />
-                      {option.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select 
+                value={formData.importance} 
+                onValueChange={(value: TaskFormData['importance']) => 
+                  setFormData({ ...formData, importance: value })
+                }
+              >
+                <SelectTrigger className="rounded-xl border-border/50 flex-1">
+                  <SelectValue placeholder="Select importance" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border z-50">
+                  {importanceOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-3 h-3 rounded-full", option.value === 'none' ? 'bg-muted' : `bg-${option.color}`)} />
+                        {option.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={analyzeTaskPriority}
+                disabled={isAnalyzing}
+                className="rounded-xl border-border/50 px-3"
+                title="Analyze priority with AI"
+              >
+                <Sparkles className={cn("w-4 h-4", isAnalyzing && "animate-spin")} />
+              </Button>
+            </div>
           </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
+            {task && onDelete && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDelete}
+                className="rounded-xl border-destructive/50 text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
