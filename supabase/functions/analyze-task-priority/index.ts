@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,9 +15,90 @@ serve(async (req) => {
   }
 
   try {
-    const { title, description, dueDate, subject } = await req.json();
+    const { title, description, dueDate, subject, action } = await req.json();
 
-    // Create a context-rich prompt for the AI
+    if (action === 'optimize-title') {
+      const prompt = `Optimize this task title to be more concise and effective while maintaining its meaning:
+
+Title: "${title}"
+Subject: "${subject || 'General'}"
+
+Return only the optimized title, nothing else.`;
+
+      console.log('Sending request to Gemini for title optimization...');
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 50,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', errorText);
+        throw new Error(`Gemini API error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      const optimizedTitle = data.candidates[0].content.parts[0].text.trim();
+
+      return new Response(JSON.stringify({ optimizedTitle }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'optimize-description') {
+      const prompt = `Optimize this task description to be more concise and effective while maintaining all important information:
+
+Description: "${description || 'No description provided'}"
+Title: "${title}"
+Subject: "${subject || 'General'}"
+
+Return only the optimized description, nothing else.`;
+
+      console.log('Sending request to Gemini for description optimization...');
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 200,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', errorText);
+        throw new Error(`Gemini API error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      const optimizedDescription = data.candidates[0].content.parts[0].text.trim();
+
+      return new Response(JSON.stringify({ optimizedDescription }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Default priority analysis
     const prompt = `Analyze the following task and determine its priority level based on urgency, importance, and workload:
 
 Task Details:
@@ -42,33 +123,32 @@ Consider:
 
 Respond with ONLY one word: critical, high, medium, low, or none`;
 
-    console.log('Sending request to OpenAI for task analysis...');
+    console.log('Sending request to Gemini for task analysis...');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are an expert academic assistant who analyzes tasks to determine their priority levels based on urgency, importance, and workload. Always respond with exactly one word.' },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 10,
-        temperature: 0.3,
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 10,
+        },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
-    const suggestedPriority = data.choices[0].message.content.trim().toLowerCase();
+    const suggestedPriority = data.candidates[0].content.parts[0].text.trim().toLowerCase();
 
     console.log('AI suggested priority:', suggestedPriority);
 
@@ -82,7 +162,7 @@ Respond with ONLY one word: critical, high, medium, low, or none`;
   } catch (error) {
     console.error('Error in analyze-task-priority function:', error);
     return new Response(JSON.stringify({ 
-      error: 'Failed to analyze task priority',
+      error: 'Failed to process request',
       priority: 'medium' // fallback priority
     }), {
       status: 500,

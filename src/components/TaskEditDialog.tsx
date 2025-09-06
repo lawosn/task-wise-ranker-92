@@ -132,6 +132,75 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
     }
   };
 
+  const optimizeTitle = async () => {
+    if (!formData.title.trim()) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
+        body: {
+          title: formData.title,
+          subject: formData.subject,
+          action: 'optimize-title',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.optimizedTitle) {
+        setFormData(prev => ({ ...prev, title: data.optimizedTitle }));
+        toast({
+          title: "Title Optimized",
+          description: "Task title has been improved with AI",
+        });
+      }
+    } catch (error) {
+      console.error('Error optimizing title:', error);
+      toast({
+        title: "Optimization Failed",
+        description: "Could not optimize title.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const optimizeDescription = async () => {
+    if (!formData.description.trim()) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
+        body: {
+          title: formData.title,
+          description: formData.description,
+          subject: formData.subject,
+          action: 'optimize-description',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.optimizedDescription) {
+        setFormData(prev => ({ ...prev, description: data.optimizedDescription }));
+        toast({
+          title: "Description Optimized",
+          description: "Task description has been improved with AI",
+        });
+      }
+    } catch (error) {
+      console.error('Error optimizing description:', error);
+      toast({
+        title: "Optimization Failed",
+        description: "Could not optimize description.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md mx-4 rounded-3xl bg-card">
@@ -147,14 +216,27 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
             <Label htmlFor="title" className="text-card-foreground font-medium">
               Task Title
             </Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Enter task title..."
-              className="rounded-xl border-border/50"
-              required
-            />
+            <div className="relative">
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Enter task title..."
+                className="rounded-xl border-border/50 pr-10"
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={optimizeTitle}
+                disabled={isAnalyzing || !formData.title.trim()}
+                className="absolute right-1 top-1 h-8 w-8 hover:bg-accent"
+                title="Optimize title with AI"
+              >
+                <Sparkles className={cn("h-4 w-4", isAnalyzing && "animate-spin")} />
+              </Button>
+            </div>
           </div>
 
           {/* Description */}
@@ -162,14 +244,27 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
             <Label htmlFor="description" className="text-card-foreground font-medium">
               Description (Optional)
             </Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Add details about this task..."
-              className="rounded-xl border-border/50 resize-none"
-              rows={3}
-            />
+            <div className="relative">
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Add details about this task..."
+                className="rounded-xl border-border/50 resize-none pr-10"
+                rows={3}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={optimizeDescription}
+                disabled={isAnalyzing || !formData.description.trim()}
+                className="absolute right-1 top-1 h-8 w-8 hover:bg-accent"
+                title="Optimize description with AI"
+              >
+                <Sparkles className={cn("h-4 w-4", isAnalyzing && "animate-spin")} />
+              </Button>
+            </div>
           </div>
 
           {/* Due Date */}
