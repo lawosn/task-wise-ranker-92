@@ -3,6 +3,7 @@ import { Task, TaskFormData } from '@/types/task';
 import { TaskInput } from '@/components/TaskInput';
 import { TaskPill } from '@/components/TaskPill';
 import { TaskEditDialog } from '@/components/TaskEditDialog';
+import { AISettings } from '@/components/AISettings';
 import { saveTasks, loadTasks } from '@/utils/localStorage';
 import { createTaskFromForm, updateTaskFromForm, calculateTaskRank } from '@/utils/taskUtils';
 import { cn } from '@/lib/utils';
@@ -107,9 +108,12 @@ const Index = () => {
         
         {/* Header */}
         <div className={cn(
-          'text-center mb-12 transition-all duration-700',
+          'text-center mb-12 transition-all duration-700 relative',
           hasTasks ? 'mb-8' : 'mb-16'
         )}>
+          <div className="absolute top-0 right-0">
+            <AISettings />
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
             TaskWise
           </h1>

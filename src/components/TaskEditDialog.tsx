@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { analyzeTaskPriority, optimizeTitle, optimizeDescription } from '@/services/geminiAI';
 import { cn } from '@/lib/utils';
 
 interface TaskEditDialogProps {
@@ -90,7 +90,7 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
     }
   };
 
-  const analyzeTaskPriority = async () => {
+  const handleAnalyzeTaskPriority = async () => {
     if (!formData.title.trim()) {
       toast({
         title: "Missing Information",
@@ -102,24 +102,18 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
-        body: {
-          title: formData.title,
-          description: formData.description,
-          dueDate: formData.dueDate,
-          subject: formData.subject
-        }
+      const priority = await analyzeTaskPriority(
+        formData.title,
+        formData.description,
+        formData.subject,
+        formData.dueDate
+      );
+
+      setFormData({ ...formData, importance: priority });
+      toast({
+        title: "Priority Analyzed",
+        description: `AI suggests ${priority} priority for this task.`,
       });
-
-      if (error) throw error;
-
-      if (data?.priority) {
-        setFormData({ ...formData, importance: data.priority });
-        toast({
-          title: "Priority Analyzed",
-          description: `AI suggests ${data.priority} priority for this task.`,
-        });
-      }
     } catch (error) {
       console.error('Error analyzing task priority:', error);
       toast({
@@ -132,28 +126,18 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
     }
   };
 
-  const optimizeTitle = async () => {
+  const handleOptimizeTitle = async () => {
     if (!formData.title.trim()) return;
     
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
-        body: {
-          title: formData.title,
-          subject: formData.subject,
-          action: 'optimize-title',
-        },
+      const optimizedTitle = await optimizeTitle(formData.title, formData.subject);
+      
+      setFormData(prev => ({ ...prev, title: optimizedTitle }));
+      toast({
+        title: "Title Optimized",
+        description: "Task title has been improved with AI",
       });
-
-      if (error) throw error;
-
-      if (data?.optimizedTitle) {
-        setFormData(prev => ({ ...prev, title: data.optimizedTitle }));
-        toast({
-          title: "Title Optimized",
-          description: "Task title has been improved with AI",
-        });
-      }
     } catch (error) {
       console.error('Error optimizing title:', error);
       toast({
@@ -166,29 +150,22 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
     }
   };
 
-  const optimizeDescription = async () => {
+  const handleOptimizeDescription = async () => {
     if (!formData.description.trim()) return;
     
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
-        body: {
-          title: formData.title,
-          description: formData.description,
-          subject: formData.subject,
-          action: 'optimize-description',
-        },
+      const optimizedDescription = await optimizeDescription(
+        formData.description,
+        formData.title,
+        formData.subject
+      );
+      
+      setFormData(prev => ({ ...prev, description: optimizedDescription }));
+      toast({
+        title: "Description Optimized",
+        description: "Task description has been improved with AI",
       });
-
-      if (error) throw error;
-
-      if (data?.optimizedDescription) {
-        setFormData(prev => ({ ...prev, description: data.optimizedDescription }));
-        toast({
-          title: "Description Optimized",
-          description: "Task description has been improved with AI",
-        });
-      }
     } catch (error) {
       console.error('Error optimizing description:', error);
       toast({
@@ -229,7 +206,7 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={optimizeTitle}
+                onClick={handleOptimizeTitle}
                 disabled={isAnalyzing || !formData.title.trim()}
                 className="absolute right-1 top-1 h-8 w-8 hover:bg-accent"
                 title="Optimize title with AI"
@@ -257,7 +234,7 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={optimizeDescription}
+                onClick={handleOptimizeDescription}
                 disabled={isAnalyzing || !formData.description.trim()}
                 className="absolute right-1 top-1 h-8 w-8 hover:bg-accent"
                 title="Optimize description with AI"
@@ -364,7 +341,7 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={analyzeTaskPriority}
+                onClick={handleAnalyzeTaskPriority}
                 disabled={isAnalyzing}
                 className="rounded-xl border-border/50 px-3"
                 title="Analyze priority with AI"
