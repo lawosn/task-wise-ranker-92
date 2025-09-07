@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Calendar, CalendarIcon, Flag, BookOpen, X, Trash2, Sparkles } from 'lucide-react';
+import { Calendar, CalendarIcon, Flag, BookOpen, X, Trash2 } from 'lucide-react';
 import { Task, TaskFormData, subjects, importanceOptions } from '@/types/task';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface TaskEditDialogProps {
@@ -29,7 +28,6 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
     importance: 'none',
     subject: ''
   });
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,116 +88,6 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
     }
   };
 
-  const analyzeTaskPriority = async () => {
-    if (!formData.title.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please enter a task title before analyzing priority.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
-        body: {
-          title: formData.title,
-          description: formData.description,
-          dueDate: formData.dueDate,
-          subject: formData.subject
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.priority) {
-        setFormData({ ...formData, importance: data.priority });
-        toast({
-          title: "Priority Analyzed",
-          description: `AI suggests ${data.priority} priority for this task.`,
-        });
-      }
-    } catch (error) {
-      console.error('Error analyzing task priority:', error);
-      toast({
-        title: "Analysis Failed",
-        description: "Could not analyze task priority. Please set it manually.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const optimizeTitle = async () => {
-    if (!formData.title.trim()) return;
-    
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
-        body: {
-          title: formData.title,
-          subject: formData.subject,
-          action: 'optimize-title',
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.optimizedTitle) {
-        setFormData(prev => ({ ...prev, title: data.optimizedTitle }));
-        toast({
-          title: "Title Optimized",
-          description: "Task title has been improved with AI",
-        });
-      }
-    } catch (error) {
-      console.error('Error optimizing title:', error);
-      toast({
-        title: "Optimization Failed",
-        description: "Could not optimize title.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const optimizeDescription = async () => {
-    if (!formData.description.trim()) return;
-    
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-task-priority', {
-        body: {
-          title: formData.title,
-          description: formData.description,
-          subject: formData.subject,
-          action: 'optimize-description',
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.optimizedDescription) {
-        setFormData(prev => ({ ...prev, description: data.optimizedDescription }));
-        toast({
-          title: "Description Optimized",
-          description: "Task description has been improved with AI",
-        });
-      }
-    } catch (error) {
-      console.error('Error optimizing description:', error);
-      toast({
-        title: "Optimization Failed",
-        description: "Could not optimize description.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -216,27 +104,14 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
             <Label htmlFor="title" className="text-card-foreground font-medium">
               Task Title
             </Label>
-            <div className="relative">
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Enter task title..."
-                className="rounded-xl border-border/50 pr-10"
+                className="rounded-xl border-border/50"
                 required
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={optimizeTitle}
-                disabled={isAnalyzing || !formData.title.trim()}
-                className="absolute right-1 top-1 h-8 w-8 hover:bg-accent"
-                title="Optimize title with AI"
-              >
-                <Sparkles className={cn("h-4 w-4", isAnalyzing && "animate-spin")} />
-              </Button>
-            </div>
           </div>
 
           {/* Description */}
@@ -244,27 +119,14 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
             <Label htmlFor="description" className="text-card-foreground font-medium">
               Description (Optional)
             </Label>
-            <div className="relative">
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Add details about this task..."
-                className="rounded-xl border-border/50 resize-none pr-10"
+                className="rounded-xl border-border/50 resize-none"
                 rows={3}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={optimizeDescription}
-                disabled={isAnalyzing || !formData.description.trim()}
-                className="absolute right-1 top-1 h-8 w-8 hover:bg-accent"
-                title="Optimize description with AI"
-              >
-                <Sparkles className={cn("h-4 w-4", isAnalyzing && "animate-spin")} />
-              </Button>
-            </div>
           </div>
 
           {/* Due Date */}
@@ -332,14 +194,13 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
               <Flag className="w-4 h-4" />
               Importance Level
             </Label>
-            <div className="flex gap-2">
               <Select 
                 value={formData.importance} 
                 onValueChange={(value: TaskFormData['importance']) => 
                   setFormData({ ...formData, importance: value })
                 }
               >
-                <SelectTrigger className="rounded-xl border-border/50 flex-1">
+                <SelectTrigger className="rounded-xl border-border/50">
                   <SelectValue placeholder="Select importance" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border z-50">
@@ -360,18 +221,6 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={analyzeTaskPriority}
-                disabled={isAnalyzing}
-                className="rounded-xl border-border/50 px-3"
-                title="Analyze priority with AI"
-              >
-                <Sparkles className={cn("w-4 h-4", isAnalyzing && "animate-spin")} />
-              </Button>
-            </div>
           </div>
 
           {/* Actions */}
