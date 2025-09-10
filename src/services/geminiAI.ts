@@ -89,11 +89,33 @@ Priority Levels:
 - low: Minor tasks, practice exercises, low-stakes assignments with flexible deadlines
 - none: Optional tasks, extra credit, or very low-priority items
 
+Analyze the title and description content for these priority indicators:
+
+HIGH PRIORITY KEYWORDS in title/description:
+- "exam", "test", "quiz", "midterm", "final", "presentation"
+- "project", "essay", "paper", "report", "thesis"
+- "urgent", "ASAP", "important", "critical", "deadline"
+- Numbers indicating length/scope: "5-page", "10 questions", "research"
+
+MEDIUM PRIORITY KEYWORDS:
+- "homework", "assignment", "worksheet", "practice"
+- "review", "study", "prepare", "read"
+
+LOW PRIORITY KEYWORDS:
+- "optional", "extra credit", "bonus", "draft", "outline"
+- "discussion post", "journal entry", "reflection"
+
+WORKLOAD ESTIMATION from title/description:
+- Long assignments: essays, research papers, projects (higher priority)
+- Quick tasks: worksheets, discussion posts, reading (lower priority)
+- Group work or presentations (often higher priority due to coordination)
+
 Consider:
 1. Time urgency (how close is the due date?)
-2. Academic importance (exam vs worksheet vs major project)
-3. Workload estimation (essay vs quick quiz vs research paper)
+2. Academic importance based on keywords in title/description
+3. Workload estimation from title/description content
 4. Subject context and typical assignment weights
+5. Specific urgency language in title/description
 
 Respond with ONLY one word: critical, high, medium, low, or none`;
 
