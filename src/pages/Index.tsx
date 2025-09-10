@@ -4,14 +4,18 @@ import { TaskInput } from '@/components/TaskInput';
 import { TaskPill } from '@/components/TaskPill';
 import { TaskEditDialog } from '@/components/TaskEditDialog';
 import { AISettings } from '@/components/AISettings';
+import { Button } from '@/components/ui/button';
 import { saveTasks, loadTasks } from '@/utils/localStorage';
 import { createTaskFromForm, updateTaskFromForm, calculateTaskRank } from '@/utils/taskUtils';
+import { analyzeTaskPriority } from '@/services/geminiAI';
 import { cn } from '@/lib/utils';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 const Index = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAnalyzingBatch, setIsAnalyzingBatch] = useState(false);
 
   // Load tasks from localStorage on mount
   useEffect(() => {
@@ -93,6 +97,39 @@ const Index = () => {
       });
   };
 
+  const analyzeBatchTasks = async () => {
+    const uncompletedTasks = tasks.filter(task => !task.completed);
+    if (uncompletedTasks.length === 0) return;
+
+    setIsAnalyzingBatch(true);
+    try {
+      const updatedTasks = await Promise.all(
+        tasks.map(async (task) => {
+          if (task.completed) return task;
+          
+          try {
+            const importance = await analyzeTaskPriority(
+              task.title,
+              task.description,
+              task.subject,
+              task.dueDate
+            );
+            return { ...task, importance };
+          } catch (error) {
+            console.error(`Failed to analyze task ${task.id}:`, error);
+            return task;
+          }
+        })
+      );
+      
+      setTasks(sortTasksByRank(updatedTasks));
+    } catch (error) {
+      console.error('Failed to analyze tasks:', error);
+    } finally {
+      setIsAnalyzingBatch(false);
+    }
+  };
+
   const activeTasks = tasks.filter(task => !task.completed);
   const completedTasks = tasks.filter(task => task.completed);
   const hasTasks = tasks.length > 0;
@@ -111,7 +148,23 @@ const Index = () => {
           'text-center mb-12 transition-all duration-700 relative',
           hasTasks ? 'mb-8' : 'mb-16'
         )}>
-          <div className="absolute top-0 right-0">
+          <div className="absolute top-0 right-0 flex gap-2">
+            {hasTasks && activeTasks.length > 0 && (
+              <Button
+                onClick={analyzeBatchTasks}
+                disabled={isAnalyzingBatch}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {isAnalyzingBatch ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {isAnalyzingBatch ? 'Analyzing...' : 'AI Analyze All'}
+              </Button>
+            )}
             <AISettings />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
