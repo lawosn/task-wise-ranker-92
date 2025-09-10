@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { analyzeTaskPriority, optimizeTitle, optimizeDescription } from '@/services/geminiAI';
+import { analyzeTaskPriority, optimizeTitle, optimizeDescription, generateDescription } from '@/services/geminiAI';
 import { cn } from '@/lib/utils';
 
 interface TaskEditDialogProps {
@@ -151,26 +151,47 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
   };
 
   const handleOptimizeDescription = async () => {
-    if (!formData.description.trim()) return;
+    if (!formData.title.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a task title before generating description.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsAnalyzing(true);
     try {
-      const optimizedDescription = await optimizeDescription(
-        formData.description,
-        formData.title,
-        formData.subject
-      );
+      let result: string;
       
-      setFormData(prev => ({ ...prev, description: optimizedDescription }));
+      if (formData.description.trim()) {
+        // Optimize existing description
+        result = await optimizeDescription(
+          formData.description,
+          formData.title,
+          formData.subject
+        );
+      } else {
+        // Generate description from scratch
+        result = await generateDescription(
+          formData.title,
+          formData.subject,
+          formData.dueDate
+        );
+      }
+      
+      setFormData(prev => ({ ...prev, description: result }));
       toast({
-        title: "Description Optimized",
-        description: "Task description has been improved with AI",
+        title: formData.description.trim() ? "Description Optimized" : "Description Generated",
+        description: formData.description.trim() 
+          ? "Task description has been improved with AI" 
+          : "AI generated a helpful description for your task",
       });
     } catch (error) {
-      console.error('Error optimizing description:', error);
+      console.error('Error with description AI:', error);
       toast({
-        title: "Optimization Failed",
-        description: "Could not optimize description.",
+        title: "AI Failed",
+        description: "Could not process description with AI.",
         variant: "destructive",
       });
     } finally {
@@ -235,9 +256,9 @@ export const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }: Task
                 variant="ghost"
                 size="icon"
                 onClick={handleOptimizeDescription}
-                disabled={isAnalyzing || !formData.description.trim()}
+                disabled={isAnalyzing || !formData.title.trim()}
                 className="absolute right-1 top-1 h-8 w-8 hover:bg-accent"
-                title="Optimize description with AI"
+                title={formData.description.trim() ? "Optimize description with AI" : "Generate description with AI"}
               >
                 <Sparkles className={cn("h-4 w-4", isAnalyzing && "animate-spin")} />
               </Button>

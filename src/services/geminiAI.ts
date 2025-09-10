@@ -154,3 +154,27 @@ Return only the optimized description, nothing else.`;
 
   return await callGeminiAPI(prompt, 200);
 };
+
+export const generateDescription = async (
+  title: string,
+  subject?: string,
+  dueDate?: Date
+): Promise<string> => {
+  const prompt = `Generate a helpful and concise description for this task based on the available details:
+
+Task Details:
+- Title: "${title}"
+- Subject: "${subject || 'No subject specified'}"
+- Due Date: ${dueDate ? dueDate.toLocaleDateString() : 'No due date'}
+
+Create a description that:
+1. Explains what needs to be done based on the title
+2. Includes relevant context from the subject area
+3. Mentions any time-sensitive aspects if there's a due date
+4. Provides helpful details someone would need to complete this task
+5. Keeps it concise but informative (2-3 sentences)
+
+Return only the description, nothing else.`;
+
+  return await callGeminiAPI(prompt, 150);
+};
