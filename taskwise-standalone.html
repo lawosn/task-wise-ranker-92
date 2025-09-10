@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskWise - Smart Task Ranking</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://unpkg.com/date-fns@3.6.0/index.js"></script>
+    <style>
+        /* TaskWise Original Design System */
+        :root {
+            /* App Background */
+            --background: 0 0% 8%;
+            --foreground: 0 0% 95%;
+
+            /* Task System Colors */
+            --card: 0 0% 15%;
+            --card-foreground: 0 0% 95%;
+            --card-hover: 0 0% 18%;
+
+            /* Brand Colors */
+            --primary: 270 91% 65%;
+            --primary-foreground: 0 0% 100%;
+            --primary-glow: 270 91% 75%;
+
+            --secondary: 0 0% 50%;
+            --secondary-foreground: 0 0% 100%;
+
+            /* UI States */
+            --muted: 0 0% 25%;
+            --muted-foreground: 0 0% 60%;
+
+            --accent: 270 91% 20%;
+            --accent-foreground: 270 91% 75%;
+
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 0 0% 98%;
+
+            --border: 0 0% 25%;
+            --input: 0 0% 20%;
+            --ring: 270 91% 65%;
+
+            /* Importance Levels */
+            --importance-low: 142 76% 36%;
+            --importance-medium: 48 96% 53%;
+            --importance-high: 0 84% 60%;
+            --importance-critical: 348 83% 47%;
+
+            /* Gradients */
+            --gradient-background: linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(270 50% 8%) 100%);
+            --gradient-card: linear-gradient(135deg, hsl(0 0% 15%) 0%, hsl(0 0% 12%) 100%);
+
+            /* Shadows */
+            --shadow-soft: 0 2px 8px -2px hsl(var(--primary) / 0.1);
+            --shadow-medium: 0 8px 25px -5px hsl(var(--primary) / 0.15);
+            --shadow-strong: 0 25px 50px -12px hsl(var(--primary) / 0.25);
+
+            --radius: 1.5rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: var(--gradient-background);
+            min-height: 100vh;
+            color: hsl(var(--foreground));
+        }
+
+        .container {
+            max-width: 64rem; /* 1024px - matches original */
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Task Pill Styles - Original Design */
+        .task-pill {
+            background: var(--gradient-card);
+            border: 1px solid hsl(var(--border) / 0.5);
+            border-radius: 9999px;
+            padding: 1rem 1.5rem;
+            margin: 0 auto 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+            width: 85%;
+            max-width: 36rem;
+        }
+
+        .task-pill:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            background: hsl(var(--card-hover));
+        }
+
+        .task-pill.completed {
+            opacity: 0.6;
+        }
+
+        /* Importance Colors */
+        .importance-low { color: hsl(var(--importance-low)); }
+        .importance-medium { color: hsl(var(--importance-medium)); }
+        .importance-high { color: hsl(var(--importance-high)); }
+        .importance-critical { color: hsl(var(--importance-critical)); }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            padding-top: 2rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            color: hsl(var(--foreground));
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: hsl(var(--muted-foreground));
+            font-size: 1.125rem;
+            font-weight: 300;
+        }
+
+        /* AI Settings Button */
+        .ai-settings {
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary {
+            background: hsl(var(--secondary));
+            color: hsl(var(--secondary-foreground));
+        }
+
+        .btn-secondary:hover {
+            background: hsl(var(--secondary) / 0.8);
+        }
+
+        .btn-ai {
+            background: hsl(var(--muted));
+            color: hsl(var(--muted-foreground));
+            border: 1px solid hsl(var(--border));
+        }
+
+        .btn-ai:hover {
+            background: hsl(var(--muted) / 0.8);
+            color: hsl(var(--foreground));
+        }
+
+        .btn-ai:disabled {
+            background: hsl(var(--muted) / 0.5);
+            color: hsl(var(--muted-foreground) / 0.5);
+            cursor: not-allowed;
+        }
+
+        /* Task Input */
+        .task-input-container {
+            width: 100%;
+            max-width: 32rem; /* 512px - matches original */
+            margin: 0 auto 2rem;
+            transition: all 0.5s ease-out;
+        }
+
+        .task-input-container.scaled {
+            transform: scale(1.1);
+        }
+
+        .task-input-form {
+            background: var(--gradient-card);
+            border: 1px solid hsl(var(--border) / 0.5);
+            border-radius: 9999px;
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .task-input-form input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: hsl(var(--card-foreground));
+            font-size: 1.125rem;
+            font-weight: 300;
+        }
+
+        .task-input-form input::placeholder {
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Task List */
+        .task-list-container {
+            padding-top: 0.5rem;
+        }
+
+        .task-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .task-section h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: hsl(var(--foreground));
+            margin-bottom: 1rem;
+            padding: 0 0.5rem;
+        }
+
+        .task-section.completed h2 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: hsl(var(--muted-foreground));
+        }
+
+        .task-list {
+            max-height: 60vh;
+            overflow-y: auto;
+            space-y: 0.75rem;
+        }
+
+        /* Task Item */
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-height: 60px;
+        }
+
+        .task-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-title {
+            font-weight: 500;
+            font-size: 1.125rem;
+            color: hsl(var(--card-foreground));
+            line-height: 1.25;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+        }
+
+        .task-description {
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            line-height: 1.4;
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .task-subject {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 9999px;
+            background: hsl(var(--accent));
+            color: hsl(var(--accent-foreground));
+        }
+
+        .task-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+            min-width: 120px;
+        }
+
+        .task-due-date {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+        }
+
+        .task-importance {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem;
+        }
+
+        .empty-state-icon {
+            width: 6rem;
+            height: 6rem;
+            margin: 0 auto 1.5rem;
+            border-radius: 50%;
+            background: hsl(var(--primary) / 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-state-icon::before {
+            content: '';
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: hsl(var(--primary) / 0.2);
+        }
+
+        .empty-state p {
+            color: hsl(var(--muted-foreground));
+            font-size: 1.125rem;
+            font-weight: 300;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background: hsl(var(--card));
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-strong);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: hsl(var(--card-foreground));
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: hsl(var(--card-foreground));
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            background: hsl(var(--input));
+            color: hsl(var(--foreground));
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: hsl(var(--ring));
+        }
+
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn-primary {
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+        }
+
+        .btn-primary:hover {
+            background: hsl(var(--primary) / 0.9);
+        }
+
+        .btn-destructive {
+            background: hsl(var(--destructive));
+            color: hsl(var(--destructive-foreground));
+        }
+
+        .btn-destructive:hover {
+            background: hsl(var(--destructive) / 0.9);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 1.25rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.error {
+            background: hsl(var(--destructive));
+            color: hsl(var(--destructive-foreground));
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-50%) translateY(-100%); }
+            to { transform: translateX(-50%) translateY(0); }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid hsl(var(--muted));
+            border-top: 2px solid hsl(var(--primary));
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes modalFadeIn {
+            from { 
+                opacity: 0; 
+            }
+            to { 
+                opacity: 1; 
+            }
+        }
+
+        @keyframes modalSlideIn {
+            from { 
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to { 
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes modalFadeOut {
+            from { 
+                opacity: 1; 
+            }
+            to { 
+                opacity: 0; 
+            }
+        }
+
+        @keyframes modalSlideOut {
+            from { 
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            to { 
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+        }
+
+        .modal.closing {
+            animation: modalFadeOut 0.2s ease-in;
+        }
+
+        .modal.closing .modal-content {
+            animation: modalSlideOut 0.2s ease-in;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .task-actions {
+                min-width: 100px;
+            }
+            
+            .task-input-container {
+                max-width: 100%;
+                margin: 0 1rem 2rem;
+            }
+            
+            .task-pill {
+                width: 90%;
+                max-width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .task-input-container {
+                margin: 0 0.5rem 2rem;
+            }
+            
+            .task-pill {
+                width: 95%;
+                max-width: 100%;
+            }
+        }
+    </style>
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // Gemini AI Service - Exact copy from original
+        let storedApiKey = localStorage.getItem('gemini_api_key') || '';
+
+        const getApiKey = () => {
+            if (!storedApiKey) {
+                const key = prompt('Please enter your Gemini API key (get it from https://aistudio.google.com/app/apikey):');
+                if (key) {
+                    storedApiKey = key;
+                    localStorage.setItem('gemini_api_key', key);
+                }
+            }
+            return storedApiKey;
+        };
+
+        const clearApiKey = () => {
+            storedApiKey = '';
+            localStorage.removeItem('gemini_api_key');
+        };
+
+        const callGeminiAPI = async (prompt, maxTokens = 50) => {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                throw new Error('Gemini API key is required');
+            }
+
+            const requestBody = {
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: maxTokens,
+                },
+            };
+
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Gemini API error:', errorText);
+                throw new Error(`Gemini API error: ${response.status} ${errorText}`);
+            }
+
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text.trim();
+        };
+
+        const analyzeTaskPriority = async (title, description, subject, dueDate) => {
+            const prompt = `Analyze the following task and determine its priority level based on urgency, importance, and workload:
+
+Task Details:
+- Title: "${title}"
+- Description: "${description || 'No description provided'}"
+- Subject: "${subject || 'No subject specified'}"
+- Due Date: ${dueDate ? dueDate.toLocaleDateString() : 'No due date'}
+- Current Date: ${new Date().toLocaleDateString()}
+
+Priority Levels:
+- critical: Major assignments, exams, projects with tight deadlines (within 1-2 days) or high academic weight
+- high: Important assignments, tests, projects due within a week or with significant impact on grades  
+- medium: Regular assignments, homework with moderate deadlines (1-2 weeks)
+- low: Minor tasks, practice exercises, low-stakes assignments with flexible deadlines
+- none: Optional tasks, extra credit, or very low-priority items
+
+Consider:
+1. Time urgency (how close is the due date?)
+2. Academic importance (exam vs worksheet vs major project)
+3. Workload estimation (essay vs quick quiz vs research paper)
+4. Subject context and typical assignment weights
+
+Respond with ONLY one word: critical, high, medium, low, or none`;
+
+            const response = await callGeminiAPI(prompt, 10);
+            
+            const validPriorities = ['critical', 'high', 'medium', 'low', 'none'];
+            const suggestedPriority = response.toLowerCase();
+            
+            return validPriorities.includes(suggestedPriority) ? suggestedPriority : 'medium';
+        };
+
+        const optimizeTitle = async (title, subject) => {
+            const prompt = `Optimize this task title to be more concise and effective while maintaining its meaning:
+
+Title: "${title}"
+Subject: "${subject || 'General'}"
+
+Return only the optimized title, nothing else.`;
+
+            return await callGeminiAPI(prompt, 50);
+        };
+
+        const optimizeDescription = async (description, title, subject) => {
+            const prompt = `Optimize this task description to be more concise and effective while maintaining all important information:
+
+Description: "${description || 'No description provided'}"
+Title: "${title}"
+Subject: "${subject || 'General'}"
+
+Return only the optimized description, nothing else.`;
+
+            return await callGeminiAPI(prompt, 200);
+        };
+        // Task Management - Exact copy from original
+        const generateId = () => Math.random().toString(36).substr(2, 9);
+
+        const saveTasks = (tasks) => {
+            localStorage.setItem('taskwise_tasks', JSON.stringify(tasks));
+        };
+
+        const loadTasks = () => {
+            const stored = localStorage.getItem('taskwise_tasks');
+            return stored ? JSON.parse(stored) : [];
+        };
+
+        const calculateTaskRank = (task) => {
+            let rank = 0;
+            
+            // Priority weight
+            const priorityWeights = { critical: 100, high: 75, medium: 50, low: 25, none: 0 };
+            rank += priorityWeights[task.importance] || 0;
+            
+            // Due date urgency
+            if (task.dueDate) {
+                const now = new Date();
+                const due = new Date(task.dueDate);
+                const daysUntilDue = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+                
+                if (daysUntilDue <= 0) rank += 50; // Overdue
+                else if (daysUntilDue <= 1) rank += 40; // Due today/tomorrow
+                else if (daysUntilDue <= 3) rank += 30; // Due this week
+                else if (daysUntilDue <= 7) rank += 20; // Due next week
+            }
+            
+            return rank;
+        };
+
+        const sortTasksByRank = (tasks) => {
+            return [...tasks].sort((a, b) => {
+                // Completed tasks go to bottom
+                if (a.completed && !b.completed) return 1;
+                if (!a.completed && b.completed) return -1;
+                
+                // Sort by rank (higher rank first)
+                const rankA = calculateTaskRank(a);
+                const rankB = calculateTaskRank(b);
+                return rankB - rankA;
+            });
+        };
+
+        // Toast Component
+        const Toast = ({ message, type = 'success', onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 3000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            return (
+                <div className={`toast ${type}`}>
+                    {message}
+                </div>
+            );
+        };
+        // AI Settings Component - Original Design
+        const AISettings = ({ onClose }) => {
+            const [apiKey, setApiKey] = useState('');
+            const [showToast, setShowToast] = useState(false);
+            const [toastMessage, setToastMessage] = useState('');
+            const [toastType, setToastType] = useState('success');
+
+            const showToastMessage = (message, type = 'success') => {
+                setToastMessage(message);
+                setToastType(type);
+                setShowToast(true);
+            };
+
+            const handleSaveApiKey = () => {
+                if (apiKey.trim()) {
+                    localStorage.setItem('gemini_api_key', apiKey.trim());
+                    storedApiKey = apiKey.trim();
+                    showToastMessage('API Key saved successfully!');
+                    setApiKey('');
+                }
+            };
+
+            const handleClearApiKey = () => {
+                clearApiKey();
+                showToastMessage('API Key cleared!');
+            };
+
+            const hasApiKey = !!storedApiKey;
+
+            return (
+                <div className="modal">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h2 className="modal-title">AI Settings</h2>
+                            <button className="close-btn" onClick={onClose}>&times;</button>
+                        </div>
+                        
+                        <div className="form-group">
+                            <label className="form-label">Gemini API Key</label>
+                            <p style={{ fontSize: '14px', color: 'hsl(var(--muted-foreground))', marginBottom: '12px' }}>
+                                Get your API key from{' '}
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'hsl(var(--primary))' }}>
+                                    Google AI Studio
+                                </a>
+                            </p>
+                            <input
+                                type="password"
+                                className="form-input"
+                                placeholder="Enter your Gemini API key"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="form-actions">
+                            <button className="btn btn-secondary" onClick={handleClearApiKey}>
+                                Clear Key
+                            </button>
+                            <button className="btn btn-primary" onClick={handleSaveApiKey}>
+                                Save Key
+                            </button>
+                        </div>
+
+                        {hasApiKey && (
+                            <div style={{ 
+                                background: 'hsl(var(--primary) / 0.1)', 
+                                color: 'hsl(var(--primary))', 
+                                padding: '12px', 
+                                borderRadius: '8px', 
+                                marginTop: '16px',
+                                fontSize: '14px',
+                                border: '1px solid hsl(var(--primary) / 0.2)'
+                            }}>
+                                ✓ API Key is configured (last 4 chars: {storedApiKey.slice(-4)})
+                            </div>
+                        )}
+
+                        {showToast && (
+                            <Toast 
+                                message={toastMessage} 
+                                type={toastType} 
+                                onClose={() => setShowToast(false)} 
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+        // Task Edit Dialog - Original Design
+        const TaskEditDialog = ({ task, isOpen, onClose, onSave, onDelete }) => {
+            const [formData, setFormData] = useState({
+                title: '',
+                description: '',
+                importance: 'none',
+                subject: '',
+                dueDate: null
+            });
+            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [showToast, setShowToast] = useState(false);
+            const [toastMessage, setToastMessage] = useState('');
+            const [toastType, setToastType] = useState('success');
+            const [isClosing, setIsClosing] = useState(false);
+
+            useEffect(() => {
+                if (task) {
+                    setFormData({
+                        title: task.title,
+                        description: task.description || '',
+                        importance: task.importance,
+                        subject: task.subject || '',
+                        dueDate: task.dueDate ? new Date(task.dueDate) : null
+                    });
+                } else {
+                    setFormData({
+                        title: '',
+                        description: '',
+                        importance: 'none',
+                        subject: '',
+                        dueDate: null
+                    });
+                }
+            }, [task, isOpen]);
+
+            // Keyboard shortcuts
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (!isOpen) return;
+                    
+                    // Ctrl+Enter to save
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        e.preventDefault();
+                        if (formData.title.trim()) {
+                            handleSubmit(e);
+                        }
+                    }
+                    
+                    // Escape to close
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        handleClose();
+                    }
+                };
+
+                if (isOpen) {
+                    document.addEventListener('keydown', handleKeyDown);
+                }
+
+                return () => {
+                    document.removeEventListener('keydown', handleKeyDown);
+                };
+            }, [isOpen, formData.title]);
+
+            const handleClose = () => {
+                setIsClosing(true);
+                setTimeout(() => {
+                    setIsClosing(false);
+                    onClose();
+                }, 200); // Match animation duration
+            };
+
+            const handleBackdropClick = (e) => {
+                if (e.target === e.currentTarget) {
+                    handleClose();
+                }
+            };
+
+            const showToastMessage = (message, type = 'success') => {
+                setToastMessage(message);
+                setToastType(type);
+                setShowToast(true);
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (formData.title.trim()) {
+                    onSave(formData);
+                    onClose();
+                }
+            };
+
+            const handleAnalyzeTaskPriority = async () => {
+                if (!formData.title.trim()) {
+                    showToastMessage('Please enter a task title before analyzing priority.', 'error');
+                    return;
+                }
+
+                setIsAnalyzing(true);
+                try {
+                    const priority = await analyzeTaskPriority(
+                        formData.title,
+                        formData.description,
+                        formData.subject,
+                        formData.dueDate
+                    );
+
+                    setFormData({ ...formData, importance: priority });
+                    showToastMessage(`AI suggests ${priority} priority for this task.`);
+                } catch (error) {
+                    console.error('Error analyzing task priority:', error);
+                    showToastMessage('Could not analyze task priority. Please set it manually.', 'error');
+                } finally {
+                    setIsAnalyzing(false);
+                }
+            };
+
+            const handleOptimizeTitle = async () => {
+                if (!formData.title.trim()) return;
+                
+                setIsAnalyzing(true);
+                try {
+                    const optimizedTitle = await optimizeTitle(formData.title, formData.subject);
+                    setFormData(prev => ({ ...prev, title: optimizedTitle }));
+                    showToastMessage('Task title has been improved with AI');
+                } catch (error) {
+                    console.error('Error optimizing title:', error);
+                    showToastMessage('Could not optimize title.', 'error');
+                } finally {
+                    setIsAnalyzing(false);
+                }
+            };
+
+            const handleOptimizeDescription = async () => {
+                if (!formData.description.trim()) return;
+                
+                setIsAnalyzing(true);
+                try {
+                    const optimizedDescription = await optimizeDescription(
+                        formData.description,
+                        formData.title,
+                        formData.subject
+                    );
+                    setFormData(prev => ({ ...prev, description: optimizedDescription }));
+                    showToastMessage('Task description has been improved with AI');
+                } catch (error) {
+                    console.error('Error optimizing description:', error);
+                    showToastMessage('Could not optimize description.', 'error');
+                } finally {
+                    setIsAnalyzing(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className={`modal ${isClosing ? 'closing' : ''}`} onClick={handleBackdropClick}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">{task ? 'Edit Task' : 'Create Task'}</h2>
+                            <button className="close-btn" onClick={handleClose}>&times;</button>
+                        </div>
+
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label className="form-label">Task Title</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        placeholder="Enter task title..."
+                                        required
+                                        style={{ paddingRight: '50px' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="btn btn-ai"
+                                        onClick={handleOptimizeTitle}
+                                        disabled={isAnalyzing || !formData.title.trim()}
+                                        style={{ 
+                                            position: 'absolute', 
+                                            right: '4px', 
+                                            top: '4px',
+                                            padding: '4px 8px',
+                                            fontSize: '12px'
+                                        }}
+                                        title="Optimize title with AI"
+                                    >
+                                        {isAnalyzing ? <span className="spinner"></span> : '✨'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Description (Optional)</label>
+                                <div style={{ position: 'relative' }}>
+                                    <textarea
+                                        className="form-textarea"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="Add details about this task..."
+                                        style={{ paddingRight: '50px' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="btn btn-ai"
+                                        onClick={handleOptimizeDescription}
+                                        disabled={isAnalyzing || !formData.description.trim()}
+                                        style={{ 
+                                            position: 'absolute', 
+                                            right: '4px', 
+                                            top: '4px',
+                                            padding: '4px 8px',
+                                            fontSize: '12px'
+                                        }}
+                                        title="Optimize description with AI"
+                                    >
+                                        {isAnalyzing ? <span className="spinner"></span> : '✨'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Due Date (Optional)</label>
+                                <input
+                                    type="date"
+                                    className="form-input"
+                                    value={formData.dueDate ? formData.dueDate.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => setFormData({ 
+                                        ...formData, 
+                                        dueDate: e.target.value ? new Date(e.target.value) : null 
+                                    })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Subject</label>
+                                <select
+                                    className="form-select"
+                                    value={formData.subject}
+                                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                >
+                                    <option value="">Select a subject</option>
+                                    <option value="Mathematics">Mathematics</option>
+                                    <option value="Science">Science</option>
+                                    <option value="English">English</option>
+                                    <option value="History">History</option>
+                                    <option value="Art">Art</option>
+                                    <option value="Music">Music</option>
+                                    <option value="Physical Education">Physical Education</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Importance Level</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select
+                                        className="form-select"
+                                        value={formData.importance}
+                                        onChange={(e) => setFormData({ ...formData, importance: e.target.value })}
+                                        style={{ flex: 1 }}
+                                    >
+                                        <option value="none">None</option>
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        className="btn btn-ai"
+                                        onClick={handleAnalyzeTaskPriority}
+                                        disabled={isAnalyzing}
+                                        style={{ padding: '12px 16px' }}
+                                        title="Analyze priority with AI"
+                                    >
+                                        {isAnalyzing ? <span className="spinner"></span> : '🤖'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="form-actions">
+                                {task && onDelete && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-destructive"
+                                        onClick={() => {
+                                            onDelete(task.id);
+                                            onClose();
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                )}
+                                <button type="button" className="btn btn-secondary" onClick={handleClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary">
+                                    {task ? 'Save Changes' : 'Create Task'}
+                                    <span style={{ marginLeft: '8px', fontSize: '12px', opacity: '0.7' }}>
+                                        (Ctrl+Enter)
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+
+                        {showToast && (
+                            <Toast 
+                                message={toastMessage} 
+                                type={toastType} 
+                                onClose={() => setShowToast(false)} 
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+        // Main App Component - Original Design
+        const App = () => {
+            const [tasks, setTasks] = useState([]);
+            const [newTaskTitle, setNewTaskTitle] = useState('');
+            const [editingTask, setEditingTask] = useState(null);
+            const [isDialogOpen, setIsDialogOpen] = useState(false);
+            const [showAISettings, setShowAISettings] = useState(false);
+            const [showToast, setShowToast] = useState(false);
+            const [toastMessage, setToastMessage] = useState('');
+            const [toastType, setToastType] = useState('success');
+
+            useEffect(() => {
+                const storedTasks = loadTasks();
+                setTasks(storedTasks);
+            }, []);
+
+            useEffect(() => {
+                saveTasks(tasks);
+            }, [tasks]);
+
+            const showToastMessage = (message, type = 'success') => {
+                setToastMessage(message);
+                setToastType(type);
+                setShowToast(true);
+            };
+
+            const addTask = (title) => {
+                if (!title.trim()) return;
+
+                const newTask = {
+                    id: generateId(),
+                    title: title.trim(),
+                    description: '',
+                    importance: 'none',
+                    subject: '',
+                    dueDate: null,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                setTasks(prevTasks => {
+                    const updatedTasks = [...prevTasks, newTask];
+                    return sortTasksByRank(updatedTasks);
+                });
+
+                setNewTaskTitle('');
+                showToastMessage('Task added successfully!');
+            };
+
+            const toggleTaskComplete = (taskId) => {
+                setTasks(prevTasks => 
+                    prevTasks.map(task => 
+                        task.id === taskId 
+                            ? { ...task, completed: !task.completed }
+                            : task
+                    )
+                );
+            };
+
+            const editTask = (task) => {
+                setEditingTask(task);
+                setIsDialogOpen(true);
+            };
+
+            const saveTask = (formData) => {
+                if (editingTask) {
+                    // Update existing task
+                    setTasks(prevTasks => {
+                        const updatedTasks = prevTasks.map(task =>
+                            task.id === editingTask.id
+                                ? { ...task, ...formData }
+                                : task
+                        );
+                        return sortTasksByRank(updatedTasks);
+                    });
+                    showToastMessage('Task updated successfully!');
+                } else {
+                    // Create new task
+                    const newTask = {
+                        id: generateId(),
+                        ...formData,
+                        completed: false,
+                        createdAt: new Date().toISOString()
+                    };
+                    setTasks(prevTasks => {
+                        const updatedTasks = [...prevTasks, newTask];
+                        return sortTasksByRank(updatedTasks);
+                    });
+                    showToastMessage('Task created successfully!');
+                }
+            };
+
+            const deleteTask = (taskId) => {
+                setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+                showToastMessage('Task deleted successfully!');
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                addTask(newTaskTitle);
+            };
+
+            const formatDueDate = (date) => {
+                const now = new Date();
+                const diff = date.getTime() - now.getTime();
+                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                
+                if (days === 0) return 'Today';
+                if (days === 1) return 'Tomorrow';
+                if (days < 0) return `${Math.abs(days)} days ago`;
+                if (days < 7) return `${days} days`;
+                
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            };
+
+            const getImportanceColor = (importance) => {
+                return `importance-${importance}`;
+            };
+
+            const activeTasks = tasks.filter(task => !task.completed);
+            const completedTasks = tasks.filter(task => task.completed);
+            const hasTasks = tasks.length > 0;
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <div className="ai-settings">
+                            <button 
+                                className="btn btn-secondary"
+                                onClick={() => setShowAISettings(true)}
+                                title="AI Settings"
+                            >
+                                ⚙️ AI
+                            </button>
+                        </div>
+                        <h1>TaskWise</h1>
+                        <p>Rank your tasks by importance and stay focused</p>
+                    </div>
+
+                    {/* Task Input */}
+                    <div className={`task-input-container ${!hasTasks ? 'scaled' : ''}`}>
+                        <form onSubmit={handleSubmit} className="task-input-form">
+                            <div className="task-item">
+                                <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: '1.25rem' }}>+</span>
+                                <input
+                                    type="text"
+                                    value={newTaskTitle}
+                                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                                    placeholder="What do you need to do?"
+                                    required
+                                />
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Tasks List */}
+                    {hasTasks && (
+                        <div className="fade-in">
+                            {/* Active Tasks */}
+                            {activeTasks.length > 0 && (
+                                <div className="task-section">
+                                    <h2>Tasks ({activeTasks.length})</h2>
+                                    <div className="task-list-container">
+                                        <div className="task-list">
+                                            {activeTasks.map((task, index) => (
+                                                <div 
+                                                    key={task.id}
+                                                    className="task-pill slide-up"
+                                                    style={{ animationDelay: `${index * 100}ms` }}
+                                                    onClick={() => editTask(task)}
+                                                >
+                                                    <div className="task-item">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleTaskComplete(task.id);
+                                                            }}
+                                                            style={{ 
+                                                                background: 'none', 
+                                                                border: 'none', 
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s',
+                                                                transform: 'scale(1)'
+                                                            }}
+                                                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                                                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                                        >
+                                                            {task.completed ? (
+                                                                <span style={{ color: 'hsl(var(--primary))', fontSize: '1.5rem' }}>✓</span>
+                                                            ) : (
+                                                                <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: '1.5rem' }}>○</span>
+                                                            )}
+                                                        </button>
+
+                                                        <div className="task-content">
+                                                            <h3 className={`task-title ${task.completed ? 'completed' : ''}`}>
+                                                                {task.title}
+                                                            </h3>
+                                                            {task.description && (
+                                                                <p className="task-description">
+                                                                    {task.description}
+                                                                </p>
+                                                            )}
+                                                            {task.subject && (
+                                                                <div className="task-meta">
+                                                                    <span className="task-subject">
+                                                                        {task.subject}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="task-actions">
+                                                            {task.dueDate && (
+                                                                <div className="task-due-date">
+                                                                    <span>📅</span>
+                                                                    <span>{formatDueDate(task.dueDate)}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className={`task-importance ${getImportanceColor(task.importance)}`}>
+                                                                <span>🏁</span>
+                                                                <span className="capitalize">
+                                                                    {task.importance === 'none' ? 'No Priority' : task.importance}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Completed Tasks */}
+                            {completedTasks.length > 0 && (
+                                <div className="task-section completed">
+                                    <h2>Completed ({completedTasks.length})</h2>
+                                    <div className="task-list">
+                                        {completedTasks.map((task, index) => (
+                                            <div 
+                                                key={task.id}
+                                                className="task-pill completed slide-up"
+                                                style={{ animationDelay: `${index * 50}ms` }}
+                                                onClick={() => editTask(task)}
+                                            >
+                                                <div className="task-item">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleTaskComplete(task.id);
+                                                        }}
+                                                        style={{ 
+                                                            background: 'none', 
+                                                            border: 'none', 
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            transform: 'scale(1)'
+                                                        }}
+                                                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                                                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                                    >
+                                                        <span style={{ color: 'hsl(var(--primary))', fontSize: '1.5rem' }}>✓</span>
+                                                    </button>
+
+                                                    <div className="task-content">
+                                                        <h3 className="task-title completed">
+                                                            {task.title}
+                                                        </h3>
+                                                        {task.description && (
+                                                            <p className="task-description">
+                                                                {task.description}
+                                                            </p>
+                                                        )}
+                                                        {task.subject && (
+                                                            <div className="task-meta">
+                                                                <span className="task-subject">
+                                                                    {task.subject}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="task-actions">
+                                                        {task.dueDate && (
+                                                            <div className="task-due-date">
+                                                                <span>📅</span>
+                                                                <span>{formatDueDate(task.dueDate)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className={`task-importance ${getImportanceColor(task.importance)}`}>
+                                                            <span>🏁</span>
+                                                            <span className="capitalize">
+                                                                {task.importance === 'none' ? 'No Priority' : task.importance}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!hasTasks && (
+                        <div className="empty-state fade-in">
+                            <div className="empty-state-icon"></div>
+                            <p>Add your first task to get started</p>
+                        </div>
+                    )}
+
+                    {/* Modals */}
+                    <TaskEditDialog
+                        task={editingTask}
+                        isOpen={isDialogOpen}
+                        onClose={() => {
+                            setIsDialogOpen(false);
+                            setEditingTask(null);
+                        }}
+                        onSave={saveTask}
+                        onDelete={deleteTask}
+                    />
+
+                    {showAISettings && (
+                        <AISettings onClose={() => setShowAISettings(false)} />
+                    )}
+
+                    {showToast && (
+                        <Toast 
+                            message={toastMessage} 
+                            type={toastType} 
+                            onClose={() => setShowToast(false)} 
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
