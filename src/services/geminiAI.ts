@@ -160,21 +160,30 @@ export const generateDescription = async (
   subject?: string,
   dueDate?: Date
 ): Promise<string> => {
-  const prompt = `Generate a helpful and concise description for this task based on the available details:
+  const prompt = `Generate a helpful and detailed description for this task that includes specific steps and methods to complete it:
 
 Task Details:
 - Title: "${title}"
 - Subject: "${subject || 'No subject specified'}"
 - Due Date: ${dueDate ? dueDate.toLocaleDateString() : 'No due date'}
 
-Create a description that:
-1. Explains what needs to be done based on the title
-2. Includes relevant context from the subject area
-3. Mentions any time-sensitive aspects if there's a due date
-4. Provides helpful details someone would need to complete this task
-5. Keeps it concise but informative (2-3 sentences)
+Create a description that includes:
+1. What needs to be accomplished
+2. Specific steps or methods to complete the task
+3. Subject-specific tips and strategies
+4. Time management suggestions if there's a due date
+5. Actionable advice (e.g., for "math test study" include: practice problems, review formulas, check old tests, etc.)
+
+Examples of good actionable steps by subject:
+- Math: Do practice problems, review formulas, work through example problems, check old tests/quizzes
+- English: Create outline, research sources, draft thesis, revise for clarity, proofread grammar
+- Science: Review notes, create concept maps, practice lab procedures, memorize key terms
+- History: Timeline important events, analyze primary sources, create study guides, practice essay questions
+- General studying: Use active recall, spaced repetition, teach concepts to others, create flashcards
+
+Make it practical and specific to help someone actually complete the task. Keep it informative but concise (3-4 sentences).
 
 Return only the description, nothing else.`;
 
-  return await callGeminiAPI(prompt, 150);
+  return await callGeminiAPI(prompt, 250);
 };
