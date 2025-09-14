@@ -130,9 +130,30 @@
 @layer components {
   /* Task Pill Styles */
   .task-pill {
-    @apply bg-card hover:bg-card-hover px-6 py-4 shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-border/50 w-full;
+    @apply px-6 py-4 shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-border/50 w-full;
     background: var(--gradient-card);
     border-radius: 9999px;
+  }
+
+  /* Importance Gradient Backgrounds */
+  .task-pill.importance-none {
+    background: var(--gradient-card);
+  }
+
+  .task-pill.importance-low {
+    background: linear-gradient(135deg, hsl(var(--importance-low)) 0%, hsl(var(--importance-low) / 0.7) 100%);
+  }
+
+  .task-pill.importance-medium {
+    background: linear-gradient(135deg, hsl(var(--importance-medium)) 0%, hsl(var(--importance-medium) / 0.7) 100%);
+  }
+
+  .task-pill.importance-high {
+    background: linear-gradient(135deg, hsl(var(--importance-high)) 0%, hsl(var(--importance-high) / 0.7) 100%);
+  }
+
+  .task-pill.importance-critical {
+    background: linear-gradient(135deg, hsl(var(--importance-critical)) 0%, hsl(var(--importance-critical) / 0.7) 100%);
   }
 
   .task-pill:hover {

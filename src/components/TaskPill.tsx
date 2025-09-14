@@ -26,20 +26,15 @@ export const TaskPill = ({ task, onToggleComplete, onEdit }: TaskPillProps) => {
   };
 
   const getImportanceColor = (importance: Task['importance']) => {
-    const colors = {
-      none: 'text-muted-foreground',
-      low: 'text-importance-low',
-      medium: 'text-importance-medium', 
-      high: 'text-importance-high',
-      critical: 'text-importance-critical'
-    };
-    return colors[importance];
+    // For importance indicators, use white text on gradient backgrounds
+    return importance === 'none' ? 'text-muted-foreground' : 'text-white';
   };
 
   return (
     <div 
       className={cn(
         'task-pill group fade-in',
+        `importance-${task.importance}`,
         task.completed && 'opacity-60'
       )}
       onMouseEnter={() => setIsHovered(true)}
