@@ -73,6 +73,8 @@ export const analyzeTaskPriority = async (
   subject?: string,
   dueDate?: Date
 ): Promise<'critical' | 'high' | 'medium' | 'low' | 'none'> => {
+  const userContext = localStorage.getItem('ai_user_context') || '';
+  
   const prompt = `Analyze the following task and determine its priority level based on urgency, importance, and workload:
 
 Task Details:
@@ -82,7 +84,12 @@ Task Details:
 - Due Date: ${dueDate ? dueDate.toLocaleDateString() : 'No due date'}
 - Current Date: ${new Date().toLocaleDateString()}
 
-Priority Levels:
+${userContext ? `User Context:
+${userContext}
+
+Use this personal context to better understand what would be important or urgent for this specific user.
+
+` : ''}Priority Levels:
 - critical: Major assignments, exams, projects with tight deadlines (within 1-2 days) or high academic weight
 - high: Important assignments, tests, projects due within a week or with significant impact on grades  
 - medium: Regular assignments, homework with moderate deadlines (1-2 weeks)
@@ -116,6 +123,7 @@ Consider:
 3. Workload estimation from title/description content
 4. Subject context and typical assignment weights
 5. Specific urgency language in title/description
+${userContext ? '6. User\'s personal context and priorities' : ''}
 
 Respond with ONLY one word: critical, high, medium, low, or none`;
 

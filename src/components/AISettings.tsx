@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Settings, Key, ExternalLink } from 'lucide-react';
+import { Settings, Key, ExternalLink, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { getApiKey, clearApiKey } from '@/services/geminiAI';
 import { useToast } from '@/hooks/use-toast';
@@ -10,25 +11,33 @@ import { useToast } from '@/hooks/use-toast';
 export const AISettings = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [userContext, setUserContext] = useState(() => {
+    return localStorage.getItem('ai_user_context') || '';
+  });
   const { toast } = useToast();
 
-  const handleSaveApiKey = () => {
+  const handleSaveSettings = () => {
     if (apiKey.trim()) {
       localStorage.setItem('gemini_api_key', apiKey.trim());
-      toast({
-        title: "API Key Saved",
-        description: "Your Gemini API key has been saved locally.",
-      });
-      setIsOpen(false);
-      setApiKey('');
     }
+    if (userContext.trim()) {
+      localStorage.setItem('ai_user_context', userContext.trim());
+    }
+    toast({
+      title: "Settings Saved",
+      description: "Your AI settings have been saved locally.",
+    });
+    setIsOpen(false);
+    setApiKey('');
   };
 
-  const handleClearApiKey = () => {
+  const handleClearSettings = () => {
     clearApiKey();
+    localStorage.removeItem('ai_user_context');
+    setUserContext('');
     toast({
-      title: "API Key Cleared",
-      description: "Your Gemini API key has been removed.",
+      title: "Settings Cleared",
+      description: "All AI settings have been removed.",
       variant: "destructive",
     });
   };
@@ -81,21 +90,37 @@ export const AISettings = () => {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label className="text-card-foreground font-medium flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Personal Context
+            </Label>
+            <Textarea
+              value={userContext}
+              onChange={(e) => setUserContext(e.target.value)}
+              placeholder="Add context about yourself to help AI make better importance decisions (e.g., your role, priorities, deadlines, etc.)..."
+              className="rounded-xl border-border/50 min-h-[80px]"
+            />
+            <p className="text-sm text-muted-foreground">
+              This helps the AI understand your personal priorities and context when analyzing task importance.
+            </p>
+          </div>
+
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={handleClearApiKey}
-              disabled={!hasApiKey}
+              onClick={handleClearSettings}
+              disabled={!hasApiKey && !userContext.trim()}
               className="flex-1 rounded-xl border-border/50"
             >
-              Clear Key
+              Clear All
             </Button>
             <Button
-              onClick={handleSaveApiKey}
-              disabled={!apiKey.trim()}
+              onClick={handleSaveSettings}
+              disabled={!apiKey.trim() && !userContext.trim()}
               className="flex-1 rounded-xl bg-primary hover:bg-primary/90"
             >
-              Save Key
+              Save Settings
             </Button>
           </div>
 
