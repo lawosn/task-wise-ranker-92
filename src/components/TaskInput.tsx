@@ -25,7 +25,7 @@ export const TaskInput = ({ onAddTask, hasTasks, className }: TaskInputProps) =>
       hasTasks ? 'mb-8' : '',
       className
     )}>
-      <form onSubmit={handleSubmit} className="task-pill">
+      <form onSubmit={handleSubmit} className="task-pill input-pill">
         <div className="flex items-center gap-4 min-h-[60px]">
           <Plus className="w-5 h-5 text-muted-foreground shrink-0" />
           <input
